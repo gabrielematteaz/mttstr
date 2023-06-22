@@ -4,9 +4,14 @@ void *mttstr_mem_rev(void *mem, size_t n)
 {
 	if (mem)
 	{
-		char *m = mem, *mn = m + n, mc;
+		char *m = mem, *mn = m + n;
 
-		while (m < mn) mc = *m, *m++ = *--mn, *mn = mc;
+		while (m < mn)
+		{
+			char mc = *m;
+
+			*m++ = *--mn, *mn = mc;
+		}
 	}
 
 	return mem;
@@ -17,7 +22,6 @@ size_t mttstr_uval_to_str(char *str, size_t uval, int base, int fs)
 	if (str && 2 <= base && base <= 36)
 	{
 		char *s = str;
-		size_t n;
 
 		if (base > 10)
 		{
@@ -25,29 +29,32 @@ size_t mttstr_uval_to_str(char *str, size_t uval, int base, int fs)
 
 			do
 			{
-				char rm = uval % base;
+				char r = uval % base;
 
-				uval /= base, *s++ = (rm < 10 ? '0' : a) + rm;
+				uval /= base, *s++ = (r < 10 ? '0' : a) + r;
 			} while (uval);
 		}
 		else do *s++ = '0' + uval % base, uval /= base; while (uval);
 
-		n = s - str, mttstr_mem_rev(str, n);
-
 		if (fs & VTS_NULL_TERM) *s = 0;
 
-		return n;
+		{
+			size_t n = s - str;
+
+			mttstr_mem_rev(str, n);
+
+			return n;
+		}
 	}
 
 	return 0;
 }
 
-size_t mttstr_uval_to_str_s(char *str, size_t size, size_t uval, int base, int fs)
+size_t mttstr_uval_to_str_s(char *str, size_t c, size_t uval, int base, int fs)
 {
 	if (str && 2 <= base && base <= 36)
 	{
-		char *s = str, *ss = s + size;
-		size_t n;
+		char *s = str, *sc = s + c;
 
 		if (base > 10)
 		{
@@ -55,30 +62,34 @@ size_t mttstr_uval_to_str_s(char *str, size_t size, size_t uval, int base, int f
 
 			do
 			{
-				char rm;
+				if (s == sc) return 0;
 
-				if (s == ss) return 0;
+				{
+					char r = uval % base;
 				
-				rm = uval % base;
-
-				uval /= base, *s++ = (rm < 10 ? '0' : a) + rm;
+					uval /= base, *s++ = (r < 10 ? '0' : a) + r;
+				}
 			} while (uval);
 		}
 		else
 		{
 			do
 			{
-				if (s == ss) return 0;
+				if (s == sc) return 0;
 
 				*s++ = '0' + uval % base, uval /= base;
 			} while (uval);
 		}
 
-		n = s - str, mttstr_mem_rev(str, n);
+		if (fs & VTS_NULL_TERM && s < sc) *s = 0;
 
-		if (s < ss && fs & VTS_NULL_TERM) *s = 0;
+		{
+			size_t n = s - str;
 
-		return n;
+			mttstr_mem_rev(str, n);
+
+			return n;
+		}
 	}
 
 	return 0;
@@ -88,309 +99,340 @@ size_t mttstr_ival_to_str(char *str, size_t ival, int fs)
 {
 	if (str)
 	{
-		size_t iv = ival, n;
+		size_t i = ival;
 		char *s = str;
 
 		if IS_UVAL_NEG(ival) ival = -ival;
 
 		do *s++ = '0' + ival % 10, ival /= 10; while (ival);
 
-		if IS_UVAL_NEG(iv) *s++ = '-';
-		else if (fs & IVTS_PSIGN) *s++ = '+';
-
-		n = s - str, mttstr_mem_rev(str, n);
+		if IS_UVAL_NEG(i) *s++ = '-';
+		else if (fs & IVTS_PLUS_SIGN) *s++ = '+';
 
 		if (fs & VTS_NULL_TERM) *s = 0;
 
-		return n;
+		{
+			size_t n = s - str;
+
+			mttstr_mem_rev(str, n);
+
+			return n;
+		}
 	}
 
 	return 0;
 }
 
-size_t mttstr_ival_to_str_s(char *str, size_t size, size_t ival, int fs)
+size_t mttstr_ival_to_str_s(char *str, size_t c, size_t ival, int fs)
 {
 	if (str)
 	{
-		size_t iv = ival, n;
-		char *s = str, *ss = s + size;
+		size_t i = ival;
+		char *s = str, *sc = s + c;
 
 		if IS_UVAL_NEG(ival) ival = -ival;
 
 		do
 		{
-			if (s == ss) return 0;
+			if (s == sc) return 0;
 
 			*s++ = '0' + ival % 10, ival /= 10;
 		} while (ival);
 
-		if (s == ss) return 0;
+		if IS_UVAL_NEG(i)
+		{
+			if (s == sc) return 0;
 
-		if IS_UVAL_NEG(iv) *s++ = '-';
-		else if (fs & IVTS_PSIGN) *s++ = '+';
+			*s++ = '-';
+		}
+		else if (fs & IVTS_PLUS_SIGN)
+		{
+			if (s == sc) return 0;
 
-		n = s - str, mttstr_mem_rev(str, n);
+			*s++ = '+';
+		}
 
-		if (s < ss && fs & VTS_NULL_TERM) *s = 0;
+		if (fs & VTS_NULL_TERM && s < sc) *s = 0;
 
-		return n;
+		{
+			size_t n = s - str;
+
+			mttstr_mem_rev(str, n);
+
+			return n;
+		}
 	}
 
 	return 0;
 }
 
-size_t mttstr_uval_to_fstr(char *fstr, size_t uval, int base, size_t width, int fls)
+size_t mttstr_uval_to_fstr(char *fstr, size_t uval, int base, size_t width, int fs)
 {
 	if (fstr && 2 <= base && base <= 36)
 	{
-		char *fs = fstr, *fsw = fs + width;
-		size_t n;
+		char *f = fstr;
 
 		if (base > 10)
 		{
-			char a = fls & UVTS_LCASE ? 87 : 55;
+			char a = fs & UVTS_LCASE ? 87 : 55;
 
 			do
 			{
-				char rm = uval % base;
+				char r = uval % base;
 
-				uval /= base, *fs++ = (rm < 10 ? '0' : a) + rm;
+				uval /= base, *f++ = (r < 10 ? '0' : a) + r;
 			} while (uval);
 		}
-		else do *fs++ = '0' + uval % base, uval /= base; while (uval);
+		else do *f++ = '0' + uval % base, uval /= base; while (uval);
 
-		if (fls & VTFS_LEFT_ALN)
 		{
-			mttstr_mem_rev(fstr, fs - fstr);
+			char *fw = fstr + width;
+			size_t n;
 
-			while (fs < fsw) *fs++ = ' ';
-
-			n = fs - fstr;
-		}
-		else
-		{
-			char c = fls & VTFS_PREP_ZEROS ? '0' : ' ';
-
-			while (fs < fsw) *fs++ = c;
-
-			n = fs - fstr, mttstr_mem_rev(fstr, n);
-		}
-
-		if (fls & VTS_NULL_TERM) *fs = 0;
-
-		return n;
-	}
-
-	return 0;
-}
-
-size_t mttstr_uval_to_fstr_s(char *fstr, size_t size, size_t uval, int base, size_t width, int fls)
-{
-	if (fstr && 2 <= base && base <= 36 && width <= size)
-	{
-		char *fs = fstr, *fss = fs + size, *fsw = fs + width;
-		size_t n;
-
-		if (base > 10)
-		{
-			char a = fls & UVTS_LCASE ? 87 : 55;
-
-			do
+			if (fs & VTFS_LEFT_ALN)
 			{
-				char rm;
+				mttstr_mem_rev(fstr, f - fstr);
 
-				if (fs == fss) return 0;
-				
-				rm = uval % base;
+				while (f < fw) *f++ = ' ';
 
-				uval /= base, *fs++ = (rm < 10 ? '0' : a) + rm;
-			} while (uval);
-		}
-		else
-		{
-			do
-			{
-				if (fs == fss) return 0;
-
-				*fs++ = '0' + uval % base, uval /= base;
-			} while (uval);
-		}
-
-		if (fls & VTFS_LEFT_ALN)
-		{
-			mttstr_mem_rev(fstr, fs - fstr);
-
-			while (fs < fsw) *fs++ = ' ';
-
-			n = fs - fstr;
-		}
-		else
-		{
-			char c = fls & VTFS_PREP_ZEROS ? '0' : ' ';
-
-			while (fs < fsw) *fs++ = c;
-
-			n = fs - fstr, mttstr_mem_rev(fstr, n);
-		}
-
-		if (fs < fss && fls & VTS_NULL_TERM) *fs = 0;
-
-		return n;
-	}
-
-	return 0;
-}
-
-size_t mttstr_ival_to_fstr(char *fstr, size_t ival, size_t width, int fls)
-{
-	if (fstr)
-	{
-		size_t iv = ival, n;
-		char *fs = fstr, *fsw = fs + width;
-
-		if IS_UVAL_NEG(ival) ival = -ival;
-
-		do *fs++ = '0' + ival % 10, ival /= 10; while (ival);
-
-		if (fls & VTFS_LEFT_ALN)
-		{
-			if IS_UVAL_NEG(ival) *fs++ = '-';
-			else if (fls & IVTS_PSIGN) *fs++ = '+';
-
-			mttstr_mem_rev(fstr, fs - fstr);
-
-			while (fs < fsw) *fs++ = ' ';
-
-			n = fs - fstr;
-		}
-		else
-		{
-			if (fls & VTFS_PREP_ZEROS)
-			{
-				if IS_UVAL_NEG(iv)
-				{
-					fsw--;
-
-					while (fs < fsw) *fs++ = '0';
-
-					*fs++ = '-';
-				}
-				else if (fls & IVTS_PSIGN)
-				{
-					fsw--;
-
-					while (fs < fsw) *fs++ = '0';
-
-					*fs++ = '+';
-				}
-				else while (fs < fsw) *fs++ = '0';
+				n = f - fstr;
 			}
 			else
 			{
-				if IS_UVAL_NEG(ival) *fs++ = '-';
-				else if (fls & IVTS_PSIGN) *fs++ = '+';
+				char p = fs & VTFS_PREP_ZEROS ? '0' : ' ';
 
-				while (fs < fsw) *fs++ = ' ';
+				while (f < fw) *f++ = p;
+
+				n = f - fstr, mttstr_mem_rev(fstr, n);
 			}
 
-			n = fs - fstr, mttstr_mem_rev(fstr, n);
+			if (fs & VTS_NULL_TERM) *f = 0;
+
+			return n;
 		}
-
-		if (fls & VTS_NULL_TERM) *fs = 0;
-
-		return n;
 	}
 
 	return 0;
 }
 
-size_t mttstr_ival_to_fstr_s(char *fstr, size_t size, size_t ival, size_t width, int fls)
+size_t mttstr_uval_to_fstr_s(char *fstr, size_t c, size_t uval, int base, size_t width, int fs)
 {
-	if (fstr && width <= size)
+	if (fstr && 2 <= base && base <= 36 && width <= c)
 	{
-		size_t iv = ival, n;
-		char *fs = fstr, *fss = fs + size, *fsw = fs + width;
+		char *f = fstr, *fc = f + c;
+
+		if (base > 10)
+		{
+			char a = fs & UVTS_LCASE ? 87 : 55;
+
+			do
+			{
+				if (f == fc) return 0;
+
+				{
+					char r = uval % base;
+				
+					uval /= base, *f++ = (r < 10 ? '0' : a) + r;
+				}
+			} while (uval);
+		}
+		else
+		{
+			do
+			{
+				if (f == fc) return 0;
+
+				*f++ = '0' + uval % base, uval /= base;
+			} while (uval);
+		}
+
+		{
+			char *fw = fstr + width;
+			size_t n;
+
+			if (fs & VTFS_LEFT_ALN)
+			{
+				mttstr_mem_rev(fstr, f - fstr);
+
+				while (f < fw) *f++ = ' ';
+
+				n = f - fstr;
+			}
+			else
+			{
+				char p = fs & VTFS_PREP_ZEROS ? '0' : ' ';
+
+				while (f < fw) *f++ = p;
+
+				n = f - fstr, mttstr_mem_rev(fstr, n);
+			}
+
+			if (fs & VTS_NULL_TERM && f < fc) *f = 0;
+
+			return n;
+		}
+	}
+
+	return 0;
+}
+
+size_t mttstr_ival_to_fstr(char *fstr, size_t ival, size_t width, int fs)
+{
+	if (fstr)
+	{
+		size_t i = ival;
+		char *f = fstr;
+
+		if IS_UVAL_NEG(ival) ival = -ival;
+
+		do *f++ = '0' + ival % 10, ival /= 10; while (ival);
+
+		{
+			char *fw = fstr + width;
+			size_t n;
+
+			if (fs & VTFS_LEFT_ALN)
+			{
+				if IS_UVAL_NEG(i) *f++ = '-';
+				else if (fs & IVTS_PLUS_SIGN) *f++ = '+';
+
+				mttstr_mem_rev(fstr, f - fstr);
+
+				while (f < fw) *f++ = ' ';
+
+				n = f - fstr;
+			}
+			else
+			{
+				if (fs & VTFS_PREP_ZEROS)
+				{
+					fw--;
+
+					while (f < fw) *f++ = '0';
+
+					if IS_UVAL_NEG(i) *f++ = '-';
+					else if (fs & IVTS_PLUS_SIGN) *f++ = '+';
+					else if (f == fw) *f++ = '0';
+				}
+				else
+				{
+					if IS_UVAL_NEG(i) *f++ = '-';
+					else if (fs & IVTS_PLUS_SIGN) *f++ = '+';
+
+					while (f < fw) *f++ = ' ';
+				}
+
+				n = f - fstr, mttstr_mem_rev(fstr, n);
+			}
+
+			if (fs & VTS_NULL_TERM) *f = 0;
+
+			return n;
+		}
+	}
+
+	return 0;
+}
+
+size_t mttstr_ival_to_fstr_s(char *fstr, size_t c, size_t ival, size_t width, int fs)
+{
+	if (fstr && width <= c)
+	{
+		size_t i = ival;
+		char *f = fstr, *fc = f + c;
 
 		if IS_UVAL_NEG(ival) ival = -ival;
 
 		do
 		{
-			if (fs == fss) return 0;
+			if (f == fc) return 0;
 
-			*fs++ = '0' + ival % 10, ival /= 10;
+			*f++ = '0' + ival % 10, ival /= 10;
 		} while (ival);
 
-		if (fls & VTFS_LEFT_ALN)
 		{
-			if IS_UVAL_NEG(ival)
+			if (fs & VTFS_LEFT_ALN)
 			{
-				if (fs == fss) return 0;
-
-				*fs++ = '-';
-			}
-			else if (fls & IVTS_PSIGN)
-			{
-				if (fs == fss) return 0;
-
-				*fs++ = '+';
-			}
-
-			mttstr_mem_rev(fstr, fs - fstr);
-
-			while (fs < fsw) *fs++ = ' ';
-
-			n = fs - fstr;
-		}
-		else
-		{
-			if (fls & VTFS_PREP_ZEROS)
-			{
-				if IS_UVAL_NEG(iv)
+				if IS_UVAL_NEG(i)
 				{
-					fsw--;
+					if (f == fc) return 0;
 
-					while (fs < fsw) *fs++ = '0';
-
-					if (fs == fss) return 0;
-
-					*fs++ = '-';
+					*f++ = '-';
 				}
-				else if (fls & IVTS_PSIGN)
+				else if (fs & IVTS_PLUS_SIGN)
 				{
-					fsw--;
+					if (f == fc) return 0;
 
-					while (fs < fsw) *fs++ = '0';
-
-					if (fs == fss) return 0;
-
-					*fs++ = '+';
+					*f++ = '+';
 				}
-				else while (fs < fsw) *fs++ = '0';
+
+				mttstr_mem_rev(fstr, f - fstr);
+
+				{
+					char *fw = fstr + width;
+
+					while (f < fw) *f++ = ' ';
+				}
+
+				if (fs & VTS_NULL_TERM && f < fc) *f = 0;
+
+				return f - fstr;
 			}
 			else
 			{
-				if IS_UVAL_NEG(ival)
+				if (fs & VTFS_PREP_ZEROS)
 				{
-					if (fs == fss) return 0;
+					char *fw = fstr + width - 1;
 
-					*fs++ = '-';
+					while (f < fw) *f++ = '0';
+
+					if IS_UVAL_NEG(i)
+					{
+						if (f == fc) return 0;
+
+						*f++ = '-';
+					}
+					else if (fs & IVTS_PLUS_SIGN)
+					{
+						if (f == fc) return 0;
+
+						*f++ = '+';
+					}
+					else if (f == fw) *f++ = '0';
 				}
-				else if (fls & IVTS_PSIGN)
+				else
 				{
-					if (fs == fss) return 0;
+					if IS_UVAL_NEG(i)
+					{
+						if (f == fc) return 0;
 
-					*fs++ = '+';
+						*f++ = '-';
+					}
+					else if (fs & IVTS_PLUS_SIGN)
+					{
+						if (f == fc) return 0;
+
+						*f++ = '+';
+					}
+
+					{
+						char *fw = fstr + width;
+
+						while (f < fw) *f++ = ' ';
+					}
 				}
 
-				while (fs < fsw) *fs++ = ' ';
+				{
+					size_t n = f - fstr;
+				
+					if (fs & VTS_NULL_TERM && f < fc) *f = 0;
+
+					mttstr_mem_rev(fstr, n);
+
+					return n;
+				}
 			}
-
-			n = fs - fstr, mttstr_mem_rev(fstr, n);
 		}
-
-		if (fs < fss && fls & VTS_NULL_TERM) *fs = 0;
-
-		return n;
 	}
 
 	return 0;
@@ -400,8 +442,8 @@ size_t mttstr_str_to_uval(char *str, char **last, int base, int fs)
 {
 	if (str && 2 <= base && base <= 36)
 	{
-		char sc;
-		size_t uval = 0;
+		char c;
+		size_t u = 0;
 
 		if (fs & STV_SKIP_BLNKS) while (*str == ' ') str++;
 
@@ -409,15 +451,15 @@ size_t mttstr_str_to_uval(char *str, char **last, int base, int fs)
 		{
 			if (fs & STUV_MCASE)
 			{
-				char umx = 55 + base, lmx = umx + 32;
+				char mu = 'A' + base - 10, ml = mu + 32;
 
 				while (1)
 				{
-					sc = *str;
+					c = *str;
 
-					if ('0' <= sc && sc <= '9') uval = uval * base + sc - '0';
-					else if ('A' <= sc && sc < umx) uval = uval * base + sc - 55;
-					else if ('a' <= sc && sc < lmx) uval = uval * base + sc - 87;
+					if ('0' <= c && c <= '9') u = u * base + c - '0';
+					else if ('A' <= c && c < mu) u = u * base + c - 55;
+					else if ('a' <= c && c < ml) u = u * base + c - 87;
 					else break;
 
 					str++;
@@ -425,14 +467,14 @@ size_t mttstr_str_to_uval(char *str, char **last, int base, int fs)
 			}
 			else
 			{
-				char min = fs & STUV_LCASE ? 'a' : 'A', max = min + base - 10;
+				char mn = fs & STUV_LCASE ? 'a' : 'A', mx = mn + base - 10;
 
 				while (1)
 				{
-					sc = *str;
+					c = *str;
 
-					if ('0' <= sc && sc <= '9') uval = uval * base + sc - '0';
-					else if (min <= sc && sc < max) uval = uval * base + sc - min + 10;
+					if ('0' <= c && c <= '9') u = u * base + c - '0';
+					else if (mn <= c && c < mx) u = u * base + c - mn + 10;
 					else break;
 
 					str++;
@@ -441,14 +483,14 @@ size_t mttstr_str_to_uval(char *str, char **last, int base, int fs)
 		}
 		else
 		{
-			char max = '0' + base;
+			char m = '0' + base;
 
-			while (sc = *str, '0' <= sc && sc < max) str++, uval = uval * base + sc - '0';
+			while (c = *str, '0' <= c && c < m) u = u * base + c - '0';
 		}
 
 		if (last) *last = str;
 
-		return uval;
+		return u;
 	}
 
 	if (last) *last = NULL;
@@ -460,69 +502,75 @@ size_t mttstr_strn_to_uval(char *str, size_t n, char **last, int base, int fs)
 {
 	if (str && 2 <= base && base <= 36)
 	{
-		char sc, *sn = str + n;
-		size_t uval = 0;
+		char *sn = str + n;
 
-		if (fs & STV_SKIP_BLNKS) while (*str == ' ') str++;
+		if (fs & STV_SKIP_BLNKS) while (str < sn && *str == ' ') str++;
 
-		if (base > 10)
 		{
-			if (fs & STUV_MCASE)
+			size_t u = 0;
+
+			if (base > 10)
 			{
-				char umx = 55 + base, lmx = umx + 32;
-
-				while (1)
+				if (fs & STUV_MCASE)
 				{
-					if (str == sn) break;
+					char mu = 'A' + base - 10, ml = mu + 32;
 
-					sc = *str;
+					while (1)
+					{
+						if (str == sn) break;
 
-					if ('0' <= sc && sc <= '9') uval = uval * base + sc - '0';
-					else if ('A' <= sc && sc < umx) uval = uval * base + sc - 55;
-					else if ('a' <= sc && sc < lmx) uval = uval * base + sc - 87;
-					else break;
+						{
+							char c = *str;
 
-					str++;
+							if ('0' <= c && c <= '9') u = u * base + c - '0';
+							else if ('A' <= c && c < mu) u = u * base + c - 55;
+							else if ('a' <= c && c < ml) u = u * base + c - 87;
+							else break;
+
+							str++;
+						}
+					}
+				}
+				else
+				{
+					char mn = fs & STUV_LCASE ? 'a' : 'A', mx = mn + base - 10;
+
+					while (1)
+					{
+						if (str == sn) break;
+
+						{
+							char c = *str;
+
+							if ('0' <= c && c <= '9') u = u * base + c - '0';
+							else if (mn <= c && c < mx) u = u * base + c - mn + 10;
+							else break;
+
+							str++;
+						}
+					}
 				}
 			}
 			else
 			{
-				char min = fs & STUV_LCASE ? 'a' : 'A', max = min + base - 10;
+				char m = '0' + base;
 
 				while (1)
 				{
 					if (str == sn) break;
 
-					sc = *str;
+					{
+						char c = *str;
 
-					if ('0' <= sc && sc <= '9') uval = uval * base + sc - '0';
-					else if (min <= sc && sc < max) uval = uval * base + sc - min + 10;
-					else break;
-
-					str++;
+						if ('0' <= c && c < m) u = u * base + c - '0';
+					}
 				}
 			}
+
+			if (last) *last = str;
+
+			return u;
 		}
-		else
-		{
-			char max = '0' + base;
-
-			while (1)
-			{
-				if (str == sn) break;
-
-				sc = *str;
-
-				if ('0' <= sc && sc < max) uval = uval * base + sc - '0';
-				else break;
-
-				str++;
-			}
-		}
-
-		if (last) *last = str;
-
-		return uval;
 	}
 
 	if (last) *last = NULL;
@@ -534,24 +582,24 @@ size_t mttstr_str_to_ival(char *str, char **last, int fs)
 {
 	if (str)
 	{
-		char sc;
-		size_t s, ival = 0;
+		char c = *str;
+		size_t s, i = 0;
 
 		if (fs & STV_SKIP_BLNKS) while (*str == ' ') str++;
 
-		if (sc = *str, sc == '-') sc = *++str, s = -1;
+		if (c == '-') c = *++str, s = -1;
 		else
 		{
-			if (fs & STIV_PSIGN && sc == '+') sc = *++str;
+			if (fs & STIV_PLUS_SIGN && c == '+') c = *++str;
 
 			s = 1;
 		}
 
-		while ('0' <= sc && sc <= '9') ival = ival * 10 + sc - '0', sc = *++str;
+		while ('0' <= c && c <= '9') i = i * 10 + c - '0', c = *++str;
 
 		if (last) *last = str;
 
-		return s * ival;
+		return s * i;
 	}
 
 	if (last) *last = NULL;
@@ -561,33 +609,31 @@ size_t mttstr_str_to_ival(char *str, char **last, int fs)
 
 size_t mttstr_strn_to_ival(char *str, size_t n, char **last, int fs)
 {
-	if (str && n)
+	if (str)
 	{
-		char sc, *sn = str + n;
-		size_t s, ival = 0;
+		char *sn = str + n;
 
-		if (fs & STV_SKIP_BLNKS) while (*str == ' ') str++;
+		if (fs & STV_SKIP_BLNKS) while (str < sn && *str == ' ') str++;
 
-		if (sc = *str, sc == '-') sc = *++str, s = -1;
-		else
+		if (str < sn)
 		{
-			if (fs & STIV_PSIGN && sc == '+') sc = *++str;
+			char c = *str;
+			size_t s, i = 0;
 
-			s = 1;
+			if (c == '-') c = *++str, s = -1;
+			else
+			{
+				if (fs & STIV_PLUS_SIGN && c == '+') c = *++str;
+
+				s = 1;
+			}
+
+			while (str < sn && '0' <= c && c <= '9') i = i * 10 + c - '0', c = *++str;
+
+			if (last) *last = str;
+
+			return s * i;
 		}
-
-		while (1)
-		{
-			if (str == sn) break;
-			else if ('0' <= sc && sc <= '9') ival = ival * 10 + sc - '0';
-			else break;
-
-			sc = *++str;
-		}
-
-		if (last) *last = str;
-
-		return s * ival;
 	}
 
 	if (last) *last = NULL;
