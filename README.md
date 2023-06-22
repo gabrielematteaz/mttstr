@@ -7,13 +7,13 @@ My personal C library which provides various utility functions for handling stri
 # Flags
 - VTS_NULL_TERM
 - UVTS_LCASE
-- IVTS_PSIGN
+- IVTS_PLUS_SIGN
 - VTFS_LEFT_ALN
 - VTFS_PREP_ZEROS
 - STV_SKIP_BLNKS
 - STUV_MCASE
 - STUV_LCASE
-- STIV_PSIGN
+- STIV_PLUS_SIGN
 
 # Functions
 - mttstr_mem_rev
