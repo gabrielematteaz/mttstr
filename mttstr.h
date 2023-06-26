@@ -1,7 +1,7 @@
 #ifndef MTTSTR_H
 #define MTTSTR_H
 
-#include <stdlib.h>
+#include <stddef.h>
 #include <limits.h>
 
 void *mttstr_mem_rev(void *mem, size_t n);
@@ -13,9 +13,9 @@ void *mttstr_mem_rev(void *mem, size_t n);
 size_t mttstr_uval_to_str(char *str, size_t uval, int base, int fs);
 size_t mttstr_uval_to_str_s(char *str, size_t c, size_t uval, int base, int fs);
 
-#define IVTS_PLUS_SIGN 2
+#define IS_VAL_NEG(val) (val & 1ULL << (sizeof(val) * CHAR_BIT - 1))
 
-#define IS_UVAL_NEG(uval) (uval & 1ULL << (sizeof(uval) * CHAR_BIT - 1))
+#define IVTS_PLUS_SIGN 2
 
 size_t mttstr_ival_to_str(char *str, size_t ival, int fs);
 size_t mttstr_ival_to_str_s(char *str, size_t c, size_t ival, int fs);
