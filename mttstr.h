@@ -13,7 +13,7 @@ void *mttstr_mem_rev(void *mem, size_t n);
 size_t mttstr_uval_to_str(char *str, size_t uval, int base, int fs);
 size_t mttstr_uval_to_str_s(char *str, size_t c, size_t uval, int base, int fs);
 
-#define IS_VAL_NEG(val) (val & 1ULL << (sizeof(val) * CHAR_BIT - 1))
+#define IS_VAL_NEG(val) (val & (size_t)1 << (sizeof(val) * CHAR_BIT - 1))
 
 #define IVTS_PLUS_SIGN 2
 
