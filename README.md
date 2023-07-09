@@ -2,33 +2,27 @@
 My personal C library which provides various utility functions for handling string manipulation and conversion operations.
 
 # Macros
-- IS_UVAL_NEG(uval)
+- IS_VAL_NEG(val)
 
 # Flags
-- VTS_NULL_TERM
-- UVTS_LCASE
-- IVTS_PLUS_SIGN
-- VTFS_LEFT_ALN
-- VTFS_PREP_ZEROS
-- STV_SKIP_BLNKS
-- STUV_MCASE
-- STUV_LCASE
-- STIV_PLUS_SIGN
+- VTF_MINUS_SIGN
+- VTF_PLUS_SIGN
+- VTF_UCASE
+- VTF_LEFT_ALN
+- VTF_PREP_ZEROS
+- VTF_NULL_TERM
+- FTV_SKIP_BLNKS
+- FTV_MINUS_SIGN
+- FTV_PLUS_SIGN
+- FTV_MCASE
+- FTV_UCASE
 
 # Functions
 - mttstr_mem_rev
-- mttstr_uval_to_str
-- mttstr_uval_to_str_s
-- mttstr_ival_to_str
-- mttstr_ival_to_str_s
-- mttstr_uval_to_fstr
-- mttstr_uval_to_fstr_s
-- mttstr_ival_to_fstr
-- mttstr_ival_to_fstr_s
-- mttstr_str_to_uval
-- mttstr_strn_to_uval
-- mttstr_str_to_ival
-- mttstr_strn_to_ival
+- mttstr_val_to_str
+- mttstr_val_to_str_s
+- mttstr_str_to_val
+- mttstr_str_to_val_s
 
 # Example
 ```c
@@ -36,9 +30,9 @@ My personal C library which provides various utility functions for handling stri
 
 int main()
 {
-  char str[10];
+  char fstr[8];
 
-  if (mttstr_uval_to_str_s(str, 10, 9034, 16, VTS_NULL_TERM | UVTS_LCASE))
+  if (mttstr_val_to_fstr_s(fstr, sizeof(fstr), 9034, 16, VTF_UCASE | VTF_NULL_TERM))
   {
     /* ... */
   }
