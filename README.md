@@ -28,7 +28,7 @@ My personal C library which provides various utility functions for handling stri
 ```c
 #include "mttstr.h"
 
-int main()
+int main(void)
 {
   char fstr[8];
 
