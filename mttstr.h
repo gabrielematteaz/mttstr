@@ -6,40 +6,25 @@
 
 void *mttstr_mem_rev(void *mem, size_t n);
 
-#define VTS_NULL_TERM 1
-
-#define UVTS_LCASE 2
-
-size_t mttstr_uval_to_str(char *str, size_t uval, int base, int fs);
-size_t mttstr_uval_to_str_s(char *str, size_t c, size_t uval, int base, int fs);
+#define VTF_MINUS_SIGN 1
+#define VTF_PLUS_SIGN 2
+#define VTF_UCASE 4
+#define VTF_LEFT_ALN 8
+#define VTF_PREP_ZEROS 16
+#define VTF_NULL_TERM 32
 
 #define IS_VAL_NEG(val) (val & (size_t)1 << (sizeof(val) * CHAR_BIT - 1))
 
-#define IVTS_PLUS_SIGN 2
+size_t mttstr_val_to_fstr(char *fstr, size_t val, int base, size_t width, int fs);
+size_t mttstr_val_to_fstr_s(char *fstr, size_t c, size_t val, int base, size_t width, int fs);
 
-size_t mttstr_ival_to_str(char *str, size_t ival, int fs);
-size_t mttstr_ival_to_str_s(char *str, size_t c, size_t ival, int fs);
+#define FTV_SKIP_BLNKS 1
+#define FTV_MINUS_SIGN 2
+#define FTV_PLUS_SIGN 4
+#define FTV_MCASE 8
+#define FTV_UCASE 16
 
-#define VTFS_LEFT_ALN 4
-#define VTFS_PREP_ZEROS 8
-
-size_t mttstr_uval_to_fstr(char *fstr, size_t uval, int base, size_t width, int fs);
-size_t mttstr_uval_to_fstr_s(char *fstr, size_t c, size_t uval, int base, size_t width, int fs);
-
-size_t mttstr_ival_to_fstr(char *fstr, size_t ival, size_t width, int fs);
-size_t mttstr_ival_to_fstr_s(char *fstr, size_t c, size_t ival, size_t width, int fs);
-
-#define STV_SKIP_BLNKS 1
-
-#define STUV_MCASE 2
-#define STUV_LCASE 4
-
-size_t mttstr_str_to_uval(char *str, char **last, int base, int fs);
-size_t mttstr_strn_to_uval(char *str, size_t n, char **last, int base, int fs);
-
-#define STIV_PLUS_SIGN 2
-
-size_t mttstr_str_to_ival(char *str, char **last, int fs);
-size_t mttstr_strn_to_ival(char *str, size_t n, char **last, int fs);
+size_t mttstr_fstr_to_val(char *fstr, char **last, int base, int fs);
+size_t mttstr_fstr_to_val_s(char *fstr, size_t n, char **last, int base, int fs);
 
 #endif
