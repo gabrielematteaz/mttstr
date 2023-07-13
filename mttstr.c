@@ -1,86 +1,166 @@
 #include "mttstr.h"
 
-void *mttstr_mem_rev(void *mem, size_t len)
+void *mttstr_mem_rev(void *mem, size_t n)
 {
 	char *m, *mn, mc;
 
-	if (mem)
+	if (mem != NULL)
 	{
-		m = mem, mn = m + len;
+		m = mem, mn = m + n;
 
-		while (m < mn) mc = *m, *m++ = *--mn, *mn = mc;
+		while (m < mn)
+		{
+			mn--;
+			mc = *m;
+			*m = *mn;
+			m++;
+			*mn = mc;
+		}
 	}
 
 	return mem;
 }
 
-size_t mttstr_val_to_fstr(char *fstr, size_t val, int base, size_t width, int fs)
+uint16_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 {
-	size_t v, len;
+	size_t len, i;
 	char *f, a, rem, *fw;
 
-	if (2 <= base && base <= 36)
+	while (2 <= fmt.base && fmt.base <= 36)
 	{
-		if (fstr)
-		{		
-			if (fs & VTF_MINUS_SIGN && IS_VAL_NEG(val)) v = val, val = -val;
-			else v = 0;
+		if (fstr == NULL)
+		{
+			if (fmt.minusc && IS_VAL_NEG(ival))
+			{
+				ival = -ival;
+				len = 1;
+			}
+			else if (fmt.plusc) len = 1;
+			else len = 0;
+
+			do
+			{
+				ival /= fmt.base;
+				len++;
+			} while (ival);
+
+			if (len < fmt.width) len = fmt.width;
+		}
+		else
+		{
+			if (fmt.minusc && IS_VAL_NEG(ival))
+			{
+				i = ival;
+				ival = -ival;
+			}
+			else i = 0;
 
 			f = fstr;
 
-			if (base > 10)
+			if (fmt.base > 10)
 			{
-				a = fs & VTF_UCASE ? 55 : 87;
+				a = fmt.flags & FMT_FLAGS_LCASE ? 87 : 55;
 
-				do rem = val % base, val /= base, *f++ = (rem < 10 ? '0' : a) + rem; while (val);
-			}
-			else do *f++ = '0' + val % base, val /= base; while (val);
-
-			if (fs & VTF_LEFT_ALN)
-			{
-				if IS_VAL_NEG(v) *f++ = '-';
-				else if (fs & VTF_PLUS_SIGN) *f++ = '+';
-
-				mttstr_mem_rev(fstr, f - fstr), fw = fstr + width;
-
-				while (f < fw) *f++ = ' ';
-
-				len = f - fstr;
+				do
+				{
+					rem = ival % fmt.base;
+					ival /= fmt.base;
+					*f = (rem < 10 ? '0' : a) + rem;
+					f++;
+				} while (ival);
 			}
 			else
 			{
-				if (fs & VTF_PREP_ZEROS)
+				do
 				{
-					fw = fstr + width - 1;
-
-					while (f < fw) *f++ = '0';
-
-					if IS_VAL_NEG(v) *f++ = '-';
-					else if (fs & VTF_PLUS_SIGN) *f++ = '+';
-					else if (f == fw) *f++ = '0';
-				}
-				else
-				{
-					if IS_VAL_NEG(v) *f++ = '-';
-					else if (fs & VTF_PLUS_SIGN) *f++ = '+';
-
-					fw = fstr + width;
-
-					while (f < fw) *f++ = ' ';
-				}
-
-				len = f - fstr, mttstr_mem_rev(fstr, len);
+					*f = '0' + ival % fmt.base;
+					ival /= fmt.base;
+					f++;
+				} while (ival);
 			}
 
-			if (fs & VTF_NULL_TERM) *f = 0;
-		}
-		else
-		{
-			len = fs & VTF_MINUS_SIGN || fs & VTF_PLUS_SIGN ? 1 : 0;
+			switch (fmt.fill_mode)
+			{
+			default:
+				if IS_VAL_NEG(i)
+				{
+					*f = fmt.minusc;
+					f++;
+				}
+				else if (fmt.plusc)
+				{
+					*f = fmt.plusc;
+					f++;
+				}
 
-			do val /= base, len++; while (val);
+				fw = fstr + fmt.width;
 
-			if (len < width) len = width;
+				while (f < fw)
+				{
+					*f = fmt.fillc;
+					f++;
+				}
+
+				len = f - fstr;
+				mttstr_mem_rev(fstr, len);
+
+				break;
+			case right_fill:
+				if IS_VAL_NEG(i)
+				{
+					*f = fmt.minusc;
+					f++;
+				}
+				else if (fmt.plusc)
+				{
+					*f = fmt.plusc;
+					f++;
+				}
+
+				mttstr_mem_rev(fstr, f - fstr);
+				fw = fstr + fmt.width;
+
+				while (f < fw)
+				{
+					*f = fmt.fillc;
+					f++;
+				}
+
+				len = f - fstr;
+
+				break;
+			case int_fill:
+				fw = fstr + fmt.width - 1;
+
+				while (f < fw)
+				{
+					*f = fmt.fillc;
+					f++;
+				}
+
+				if IS_VAL_NEG(i)
+				{
+					*f = fmt.minusc;
+					f++;
+				}
+				else if (fmt.plusc)
+				{
+					*f = fmt.plusc;
+					f++;
+				}
+				else if (f == fw)
+				{
+					*f = fmt.fillc;
+					f++;
+				}
+
+				len = f - fstr;
+				mttstr_mem_rev(fstr, len);
+
+				break;
+			}
+
+			if (fmt.flags) *f = 0;
 		}
 
 		return len;
@@ -89,183 +169,159 @@ size_t mttstr_val_to_fstr(char *fstr, size_t val, int base, size_t width, int fs
 	return 0;
 }
 
-size_t mttstr_val_to_fstr_s(char *fstr, size_t n, size_t val, int base, size_t width, int fs)
+size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 {
-	size_t v, len;
-	char *f, *fn, a, rem, *fw;
+	size_t sign, ival;
+	char ucasemax, lcasemax, fc, min, max;
 
-	if (2 <= base && base <= 36 && width <= n)
+	if (fstr != NULL && 2 <= fmt.base && fmt.base <= 36)
 	{
-		if (fstr)
-		{		
-			if (fs & VTF_MINUS_SIGN && IS_VAL_NEG(val)) v = val, val = -val;
-			else v = 0;
+		ival = 0;
 
-			f = fstr, fn = f + n;
+		switch (fmt.fill_mode)
+		{
+		default:
+			fc = *fstr;
 
-			if (base > 10)
+			if (fmt.minusc && fc == '-')
 			{
-				a = fs & VTF_UCASE ? 55 : 87;
-
-				do
-				{
-					if (f == fn) return 0;
-
-					rem = val % base, val /= base, *f++ = (rem < 10 ? '0' : a) + rem;
-				} while (val);
+				fstr++;
+				fc = *fstr;
+				sign = -1;
 			}
 			else
 			{
-				do
+				if (fmt.plusc && fc == '+')
 				{
-					if (f == fn) return 0;
+					fstr++;
+					fc = *fstr;
+				}
 
-					*f++ = '0' + val % base, val /= base;
-				} while (val);
+				sign = 1;
 			}
 
-			if (fs & VTF_LEFT_ALN)
+	nofill:
+			if (fmt.base > 10)
 			{
-				if IS_VAL_NEG(v) *f++ = '-';
-				else if (fs & VTF_PLUS_SIGN) *f++ = '+';
-
-				mttstr_mem_rev(fstr, f - fstr), fw = fstr + width;
-
-				while (f < fw) *f++ = ' ';
-
-				len = f - fstr;
-			}
-			else
-			{
-				if (fs & VTF_PREP_ZEROS)
+				if (fmt.flags & FMT_FLAGS_MCASE)
 				{
-					fw = fstr + width - 1;
+					ucasemax = 'A' + fmt.base - 10;
+					lcasemax = ucasemax + 32;
 
-					while (f < fw) *f++ = '0';
-
-					if IS_VAL_NEG(v)
+					while (1)
 					{
-						if (f == fn) return 0;
+						if ('0' <= fc && fc <= '9') ival = ival * fmt.base + fc - '0';
+						else if ('A' <= fc && fc < ucasemax) ival = ival * fmt.base + fc - 55;
+						else if ('a' <= fc && fc < lcasemax) ival = ival * fmt.base + fc - 87;
+						else break;
 
-						*f++ = '-';
+						fstr++;
+						fc = *fstr;
 					}
-					else if (fs & VTF_PLUS_SIGN)
-					{
-						if (f == fn) return 0;
-
-						*f++ = '+';
-					}
-					else if (f == fw) *f++ = '0';
 				}
 				else
 				{
-					if IS_VAL_NEG(v)
+					min = fmt.flags & FMT_FLAGS_LCASE ? 'a' : 'A';
+					max = min + fmt.base - 10;
+
+					while (1)
 					{
-						if (f == fn) return 0;
+						if ('0' <= fc && fc <= '9') ival = ival * fmt.base + fc - '0';
+						else if (min <= fc && fc < max) ival = ival * fmt.base + fc - min + 10;
+						else break;
 
-						*f++ = '-';
+						fstr++;
+						fc = *fstr;
 					}
-					else if (fs & VTF_PLUS_SIGN)
-					{
-						if (f == fn) return 0;
-
-						*f++ = '+';
-					}
-
-					fw = fstr + width;
-
-					while (f < fw) *f++ = ' ';
-				}
-
-				len = f - fstr, mttstr_mem_rev(fstr, len);
-			}
-
-			if (fs & VTF_NULL_TERM && f < fn) *f = 0;
-		}
-		else
-		{
-			len = fs & VTF_MINUS_SIGN || fs & VTF_PLUS_SIGN ? 1 : 0;
-
-			do val /= base, len++; while (val);
-
-			if (len < width) len = width;
-		}
-
-		return len;
-	}
-
-	return 0;
-}
-
-size_t mttstr_fstr_to_val(char *fstr, char **last, int base, int fs)
-{
-	char fc, lmax, umax, min, max;
-	size_t sign, val;
-
-	if (fstr && 2 <= base && base <= 36)
-	{
-		if (fs & FTV_SKIP_BLNKS) while (*fstr == ' ') fstr++;
-
-		fc = *fstr;
-
-		if (fs & FTV_MINUS_SIGN && fc == '-') fc = *++fstr, sign = -1;
-		else
-		{
-			if (fs & FTV_PLUS_SIGN && fc == '+') fc = *++fstr;
-
-			sign = 1;
-		}
-
-		val = 0;
-
-		if (base > 10)
-		{
-			if (fs & FTV_MCASE)
-			{
-				lmax = 'a' + base - 10, umax = lmax - 32;
-
-				while (1)
-				{
-					if ('0' <= fc && fc <= '9') val = val * base + fc - '0';
-					else if ('a' <= fc && fc < lmax) val = val * base + fc - 87;
-					else if ('A' <= fc && fc < umax) val = val * base + fc - 55;
-					else break;
-
-					fc = *++fstr;
 				}
 			}
 			else
 			{
-				min = fs & FTV_UCASE ? 'A' : 'a', max = min + base - 10;
+				max = '0' + fmt.base;
 
-				while (1)
+				while ('0' <= fc && fc < max)
 				{
-					if ('0' <= fc && fc <= '9') val = val * base + fc - '0';
-					else if (min <= fc && fc < max) val = val * base + fc - min + 10;
-					else break;
-
-					fc = *++fstr;
+					ival = ival * fmt.base + fc - '0';
+					fstr++;
+					fc = *fstr;
 				}
 			}
+
+			break;
+		case unk_fill:
+			fc = *fstr;
+
+			if (fc == fmt.fillc)
+			{
+				fstr++;
+
+				goto leftfill;
+			}
+			else goto intfill;
+		case left_fill:
+	leftfill:
+			fc = *fstr;
+
+			while (fc == fmt.fillc)
+			{
+				fstr++;
+				fc = *fstr;
+			}
+
+			if (fmt.minusc && fc == '-')
+			{
+				fstr++;
+				fc = *fstr;
+				sign = -1;
+			}
+			else
+			{
+				if (fmt.plusc && fc == '+')
+				{
+					fstr++;
+					fc = *fstr;
+				}
+
+				sign = 1;
+			}
+
+			goto nofill;
+		case int_fill:
+			fc = *fstr;
+
+	intfill:
+			if (fmt.minusc && fc == '-')
+			{
+				fstr++;
+				fc = *fstr;
+				sign = -1;
+			}
+			else
+			{
+				if (fmt.plusc && fc == '+')
+				{
+					fstr++;
+					fc = *fstr;
+				}
+
+				sign = 1;
+			}
+
+			while (fc == fmt.fillc)
+			{
+				fstr++;
+				fc = *fstr;
+			}
+
+			goto nofill;
 		}
-		else
-		{
-			max = '0' + base;
 
-			while ('0' <= fc && fc < max) val = val * base + fc - '0', fc = *++fstr;
-		}
+		if (last != NULL) *last = fstr;
 
-		if (last) *last = fstr;
-
-		return sign * val;
+		return sign * ival;
 	}
 
-	if (last) *last = NULL;
+	if (last != NULL) *last = NULL;
 
-	return 0;
-}
-
-size_t mttstr_fstr_to_val_s(char *fstr, size_t n, char **last, int base, int fs)
-{
 	return 0;
 }
