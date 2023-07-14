@@ -6,14 +6,10 @@ My personal C library which provides various utility functions for handling stri
 
 # Enums
 - mttstr_fmt_fill_mode_t
+- mttstr_fmt_flags_t
 
 # Macros
 - IS_VAL_NEG(val)
-
-# Flags
-- FMT_FLAGS_LCASE
-- FMT_FLAGS_MCASE
-- FMT_FLAGS_NULL_TERM
 
 # Functions
 - mttstr_mem_rev
@@ -22,35 +18,36 @@ My personal C library which provides various utility functions for handling stri
 
 # Example
 ```c
-#include "mttstr.h"
+#include "mttlib/mttstr/mttstr.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 int main(int argc, char *argv[])
 {
-	char *arg, **av = argv + 1, *fstr;
-	struct mttstr_fmt_t ftivfmt = { '+', '-', ' ', 10, left_fill, 0, 0 };
-	size_t ival, fstrsize;
-	struct mttstr_fmt_t ivtffmt = { 0, 0, '0', 16, int_fill, FMT_FLAGS_LCASE | FMT_FLAGS_NULL_TERM, 16 };
+	struct mttstr_fmt_t fmt = { '+', '-', ' ', 10, LEFT, NULL_TERM };
+	char *fstr, **args, *arg;
+	size_t ival;
 
-	while (1)
+	fmt.width = mttstr_ival_to_fstr(NULL, ~0, fmt);
+	fstr = malloc(fmt.width + 1);
+
+	if (fstr != NULL)
 	{
-		arg = *av;
-		
-		if (arg == NULL) break;
+		args = argv + 1;
 
-		ival = mttstr_fstr_to_ival(arg, NULL, ftivfmt);
-		fstrsize = mttstr_ival_to_fstr(NULL, ival, ivtffmt);
-		fstr = malloc(fstrsize + 1);
-
-		if (fstr != NULL)
+		while (1)
 		{
-			mttstr_ival_to_fstr(fstr, ival, ivtffmt);
+			arg = *args;
+
+			if (arg == NULL) break;
+
+			args++;
+			ival = mttstr_fstr_to_ival(arg, NULL, fmt);
+			mttstr_ival_to_fstr(fstr, ival, fmt);
 			puts(fstr);
-			free(fstr);
 		}
 
-		av++;
+		free(fstr);
 	}
 
 	return 0;
