@@ -9,25 +9,30 @@ void *mttstr_mem_rev(void *mem, size_t n);
 
 struct mttstr_fmt_t
 {
-	char plusc, minusc, fillc;
+	char plus, minus, fill;
 	uint8_t base, fill_mode, flags;
 	uint16_t width;
 };
 
 enum mttstr_fmt_fill_mode_t
 {
-	no_fill,
-	unk_fill,
-	left_fill,
-	right_fill,
-	int_fill,
+	NONE,
+	UNKNOWN,
+	LEFT,
+	INTERNAL,
+	RIGHT,
+};
+
+enum mttstr_fmt_flags_t
+{
+	UCASE = 0,
+	NO_NULL_TERM = 0,
+	LCASE = 1,
+	MCASE = 2,
+	NULL_TERM = 4,
 };
 
 #define IS_VAL_NEG(val) (val & (size_t)1 << (sizeof(val) * CHAR_BIT - 1))
-
-#define FMT_FLAGS_LCASE 1
-#define FMT_FLAGS_MCASE 2
-#define FMT_FLAGS_NULL_TERM 4
 
 uint16_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt);
 
