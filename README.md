@@ -1,12 +1,9 @@
 # mttstr
 My personal C library which provides various utility functions for handling string manipulation and conversion operations.
 
-# Structs
-- mttstr_fmt_t
-
 # Enums
-- mttstr_fmt_fill_mode_t
-- mttstr_fmt_flags_t
+- mttstr_fillmode_t
+- mttstr_flags_t
 
 # Macros
 - IS_VAL_NEG(val)
@@ -24,27 +21,21 @@ My personal C library which provides various utility functions for handling stri
 
 int main(int argc, char *argv[])
 {
-	struct mttstr_fmt_t fmt = { '+', '-', ' ', 10, LEFT, NULL_TERM };
-	char *fstr, **args, *arg;
-	size_t ival;
+	size_t width = mttstr_ival_to_fstr(NULL, ~0, 16, 0, 0, 0, 0, 0, 0), ival, len;
+	char *fstr = malloc(width + 1), **av, *arg;
 
-	fmt.width = mttstr_ival_to_fstr(NULL, ~0, fmt);
-	fstr = malloc(fmt.width + 1);
-
-	if (fstr != NULL)
+	if (fstr)
 	{
-		args = argv + 1;
+		av = argv + 1;
+		arg = *av;
 
-		while (1)
+		while (arg != NULL)
 		{
-			arg = *args;
-
-			if (arg == NULL) break;
-
-			args++;
-			ival = mttstr_fstr_to_ival(arg, NULL, fmt);
-			mttstr_ival_to_fstr(fstr, ival, fmt);
+			ival = mttstr_fstr_to_ival(arg, NULL, 10, '+', '-', ' ', LEFT, 0);
+			mttstr_ival_to_fstr(fstr, ival, 16, 0, 0, ' ', LEFT, width, NULL_TERM);
 			puts(fstr);
+			av++;
+			arg = *av;
 		}
 
 		free(fstr);
