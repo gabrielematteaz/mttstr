@@ -2,8 +2,11 @@
 My personal C library which provides various utility functions for handling string manipulation and conversion operations.
 
 # Enums
-- mttstr_fillmode_t
-- mttstr_flags_t
+- mttstr_fmt_fillmode_t
+- mttstr_fmt_flags_t
+
+# Structs
+- mttstr_fmt_t
 
 # Macros
 - IS_VAL_NEG(val)
@@ -16,30 +19,15 @@ My personal C library which provides various utility functions for handling stri
 # Example
 ```c
 #include "mttlib/mttstr/mttstr.h"
-#include <stdlib.h>
 #include <stdio.h>
 
-int main(int argc, char *argv[])
+int main(void)
 {
-	size_t width = mttstr_ival_to_fstr(NULL, ~0, 16, 0, 0, 0, 0, 0, 0), ival, len;
-	char *fstr = malloc(width + 1), **av, *arg;
+	char fstr[32];
+	struct mttstr_fmt_t fmt = { 0, 0, '0', 16, LEFT, NULL_TERM, 16 };
 
-	if (fstr)
-	{
-		av = argv + 1;
-		arg = *av;
-
-		while (arg != NULL)
-		{
-			ival = mttstr_fstr_to_ival(arg, NULL, 10, '+', '-', ' ', LEFT, 0);
-			mttstr_ival_to_fstr(fstr, ival, 16, 0, 0, ' ', LEFT, width, NULL_TERM);
-			puts(fstr);
-			av++;
-			arg = *av;
-		}
-
-		free(fstr);
-	}
+	mttstr_ival_to_fstr(fstr, -648022, fmt);
+	puts(fstr);
 
 	return 0;
 }
