@@ -30,6 +30,6 @@ struct mttstr_fmt_t
 
 size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt);
 
-size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt);
+size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fmt_t fmt);
 
 #endif

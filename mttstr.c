@@ -167,7 +167,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 	return 0;
 }
 
-size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
+size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fmt_t fmt)
 {
 	char fc, umax, lmax, min, max;
 	size_t s, ival;
@@ -201,16 +201,17 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 				fc = *fstr;
 			}
 		}
-		else if (fmt.flags & FMT_FLAGS_RIGHT_FILL) goto right_fill;
 		else
 		{
-			while (fc == fmt.fill)
+			if ((fmt.flags & FMT_FLAGS_RIGHT_FILL) == 0)
 			{
-				fstr++;
-				fc = *fstr;
+				while (fc == fmt.fill)
+				{
+					fstr++;
+					fc = *fstr;
+				}
 			}
 
-		right_fill:
 			if (fc == fmt.minus)
 			{
 				fstr++;
