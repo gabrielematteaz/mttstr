@@ -3,6 +3,7 @@ My personal C library which provides various utility functions for handling stri
 
 # Structs
 - mttstr_fmt_t
+- mttstr_wfmt_t
 
 # Macros
 - FMT_FLAGS_UCASE
@@ -15,16 +16,22 @@ My personal C library which provides various utility functions for handling stri
 - FMT_FLAGS_NULL_TERM
 - FMT_DEF_DEC
 - FMT_DEF_HEX
+- WFMT_DEF_DEC
+- WFMT_DEF_HEX
 - IS_VAL_NEG(val)
 
 # Functions
 - mttstr_mem_rev
 - mttstr_ival_to_fstr
+- mttstr_ival_to_fstr_alloc
+- mttstr_ival_to_wfstr
+- mttstr_ival_to_wfstr_alloc
 - mttstr_fstr_to_ival
+- mttstr_wfstr_to_ival
 
 # Example
 ```c
-#include "mttlib/mttstr/mttstr.h"
+#include "mttstr.h"
 #include <stdio.h>
 
 int main(int argc, char *argv[])
