@@ -21,6 +21,27 @@ void *mttstr_mem_rev(void *mem, size_t n)
 	return mem;
 }
 
+void *mttstr_wmem_rev(void *wmem, size_t n)
+{
+	wchar_t *wm, *wmn, wmc;
+
+	if (wmem != NULL)
+	{
+		wm = wmem, wmn = wm + n;
+
+		while (wm < wmn)
+		{
+			wmn--;
+			wmc = *wm;
+			*wm = *wmn;
+			wm++;
+			*wmn = wmc;
+		}
+	}
+
+	return wmem;
+}
+
 size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 {
 	size_t len, i;
@@ -167,6 +188,182 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 	return 0;
 }
 
+char *mttstr_ival_to_fstr_alloc(size_t ival, struct mttstr_fmt_t fmt)
+{
+	size_t fstrsize = mttstr_ival_to_fstr(NULL, ival, fmt);
+	char *fstr;
+
+	if (fmt.flags & FMT_FLAGS_NULL_TERM) fstrsize++;
+
+	fstrsize = fstrsize * sizeof(*fstr);
+	fstr = malloc(fstrsize);
+
+	if (fstr != NULL) mttstr_ival_to_fstr(fstr, ival, fmt);
+
+	return fstr;
+}
+
+size_t mttstr_ival_to_wfstr(wchar_t *wfstr, size_t ival, struct mttstr_wfmt_t wfmt)
+{
+	size_t len, i;
+	wchar_t *wf, wa, wrem, *wfw;
+
+	if (2 <= wfmt.base && wfmt.base <= 36)
+	{
+		if (wfstr == NULL)
+		{
+			if (wfmt.wminus && IS_VAL_NEG(ival))
+			{
+				ival = -ival;
+				len = 1;
+			}
+			else len = wfmt.wplus ? 1 : 0;
+
+			do
+			{
+				ival /= wfmt.base;
+				len++;
+			} while (ival);
+
+			if (len < wfmt.width) len = wfmt.width;
+		}
+		else
+		{
+			if (wfmt.wminus && IS_VAL_NEG(ival))
+			{
+				i = ival;
+				ival = -ival;
+			}
+			else i = 0;
+
+			wf = wfstr;
+
+			if (wfmt.base > 10)
+			{
+				wa = wfmt.flags & FMT_FLAGS_LCASE ? 87 : 55;
+
+				do
+				{
+					wrem = ival % wfmt.base;
+					ival /= wfmt.base;
+					*wf = (wrem < 10 ? L'0' : wa) + wrem;
+					wf++;
+				} while (ival);
+			}
+			else
+			{
+				do
+				{
+					*wf = L'0' + ival % wfmt.base;
+					ival /= wfmt.base;
+					wf++;
+				} while (ival);
+			}
+
+			if (wfmt.flags & FMT_FLAGS_INT_FILL)
+			{
+				wfw = wfstr + wfmt.width - 1;
+
+				while (wf < wfw)
+				{
+					*wf = wfmt.wfill;
+					wf++;
+				}
+
+				if IS_VAL_NEG(i)
+				{
+					*wf = wfmt.wminus;
+					wf++;
+				}
+				else if (wfmt.wplus)
+				{
+					*wf = wfmt.wplus;
+					wf++;
+				}
+				else if (wf == wfw)
+				{
+					*wf = wfmt.wfill;
+					wf++;
+				}
+
+				len = wf - wfstr;
+				mttstr_wmem_rev(wfstr, len);
+			}
+			else if (wfmt.flags & FMT_FLAGS_RIGHT_FILL)
+			{
+				if IS_VAL_NEG(i)
+				{
+					*wf = wfmt.wminus;
+					wf++;
+				}
+				else if (wfmt.wplus)
+				{
+					*wf = wfmt.wplus;
+					wf++;
+				}
+
+				mttstr_wmem_rev(wfstr, wf - wfstr);
+
+				wfw = wfstr + wfmt.width;
+
+				while (wf < wfw)
+				{
+					*wf = wfmt.wfill;
+					wf++;
+				}
+
+				len = wf - wfstr;
+			}
+			else
+			{
+				if IS_VAL_NEG(i)
+				{
+					*wf = wfmt.wminus;
+					wf++;
+				}
+				else if (wfmt.wplus)
+				{
+					*wf = wfmt.wplus;
+					wf++;
+				}
+
+				wfw = wfstr + wfmt.width;
+
+				while (wf < wfw)
+				{
+					*wf = wfmt.wfill;
+					wf++;
+				}
+
+				len = wf - wfstr;
+				mttstr_wmem_rev(wfstr, len);
+
+			}
+
+			if (wfmt.flags & FMT_FLAGS_NULL_TERM) *wf = 0;
+		}
+
+		return len;
+	}
+
+	return 0;
+}
+
+wchar_t *mttstr_ival_to_wfstr_alloc(size_t ival, struct mttstr_wfmt_t wfmt)
+{
+	size_t wfstrsize = mttstr_ival_to_wfstr(NULL, ival, wfmt);
+	wchar_t *wfstr;
+
+	if (wfmt.flags & FMT_FLAGS_NULL_TERM) wfstrsize++;
+
+	wfstrsize = wfstrsize * sizeof(*wfstr);
+	wfstr = malloc(wfstrsize);
+
+	if (wfstr != NULL) mttstr_ival_to_wfstr(wfstr, ival, wfmt);
+
+	return wfstr;
+}
+
 size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fmt_t fmt)
 {
 	char fc, umax, lmax, min, max;
@@ -286,4 +483,125 @@ size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fm
 	if (last != NULL) *last = NULL;
 
 	return 0;
+}
+
+size_t mttstr_wfstr_to_ival(const wchar_t *wfstr, const wchar_t **wlast, struct mttstr_wfmt_t wfmt)
+{
+	wchar_t wfc, wumax, wlmax, wmin, wmax;
+	size_t s, ival;
+
+	if (wfstr != NULL && 2 <= wfmt.base && wfmt.base <= 36)
+	{
+		wfc = *wfstr;
+
+		if (wfmt.flags & FMT_FLAGS_INT_FILL)
+		{
+			if (wfc == wfmt.wminus)
+			{
+				wfstr++;
+				wfc = *wfstr;
+				s = -1;
+			}
+			else
+			{
+				if (wfc == wfmt.wplus)
+				{
+					wfstr++;
+					wfc = *wfstr;
+				}
+
+				s = 1;
+			}
+
+			while (wfc == wfmt.wfill)
+			{
+				wfstr++;
+				wfc = *wfstr;
+			}
+		}
+		else
+		{
+			if ((wfmt.flags & FMT_FLAGS_RIGHT_FILL) == 0)
+			{
+				while (wfc == wfmt.wfill)
+				{
+					wfstr++;
+					wfc = *wfstr;
+				}
+			}
+
+			if (wfc == wfmt.wminus)
+			{
+				wfstr++;
+				wfc = *wfstr;
+				s = -1;
+			}
+			else
+			{
+				if (wfc == wfmt.wplus)
+				{
+					wfstr++;
+					wfc = *wfstr;
+				}
+
+				s = 1;
+			}
+		}
+
+		ival = 0;
+
+		if (wfmt.base > 10)
+		{
+			if (wfmt.flags & FMT_FLAGS_MCASE)
+			{
+				wumax = L'A' + wfmt.base - 10;
+				wlmax = wumax + 32;
+
+				while (1)
+				{
+					if (L'0' <= wfc && wfc <= L'9') ival = ival * wfmt.base + wfc - L'0';
+					else if (L'A' <= wfc && wfc < wumax) ival = ival * wfmt.base + wfc - 55;
+					else if (L'a' <= wfc && wfc < wlmax) ival = ival * wfmt.base + wfc - 87;
+					else break;
+
+					wfstr++;
+					wfc = *wfstr;
+				}
+			}
+			else
+			{
+				wmin = wfmt.flags & FMT_FLAGS_LCASE ? L'a' : L'A';
+				wmax = wmin + wfmt.base - 10;
+
+				while (1)
+				{
+					if (L'0' <= wfc && wfc <= L'9') ival = ival * wfmt.base + wfc - L'0';
+					else if (wmin <= wfc && wfc < wmax) ival = ival * wfmt.base + wfc - wmin + 10;
+					else break;
+
+					wfstr++;
+					wfc = *wfstr;
+				}
+			}
+		}
+		else
+		{
+			wmax = L'0' + wfmt.base;
+
+			while (L'0' <= wfc && wfc < wmax)
+			{
+				wfstr++;
+				ival = ival * wfmt.base + wfc - L'0';
+				wfc = *wfstr;
+			}
+		}
+
+		if (wlast != NULL) *wlast = wfstr;
+
+		return s * ival;
+	}
+
+	if (wlast != NULL) *wlast = NULL;
+
+	return 0;	
 }
