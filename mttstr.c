@@ -2,19 +2,20 @@
 
 void *mttstr_mem_rev(void *mem, size_t n)
 {
-	if (mem == NULL) return NULL;
-
-	char *m = mem, *mn = m + n;
-
-	while (m < mn)
+	if (mem)
 	{
-		mn--;
+		char *m = mem, *mn = m + n;
 
-		char mc = *m;
+		while (m < mn)
+		{
+			mn--;
 
-		*m = *mn;
-		m++;
-		*mn = mc;
+			char mc = *m;
+
+			*m = *mn;
+			m++;
+			*mn = mc;
+		}
 	}
 
 	return mem;
@@ -26,24 +27,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 
 	size_t len;
 
-	if (fstr == NULL)
-	{
-		if (fmt.minus && IS_VAL_NEG(ival))
-		{
-			ival = -ival;
-			len = 1;
-		}
-		else len = fmt.plus ? 1 : 0;
-
-		do
-		{
-			ival /= fmt.base;
-			len++;
-		} while (ival);
-
-		if (len < fmt.width) len = fmt.width;
-	}
-	else
+	if (fstr)
 	{
 		size_t i;
 
@@ -130,7 +114,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 			{
 				*f = fmt.fill;
 				f++;
-			}
+			}			
 
 			len = f - fstr;
 		}
@@ -159,7 +143,24 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 			mttstr_mem_rev(fstr, len);
 		}
 
-		if (fmt.fs & FMT_FS_NULL_TERM) *f = 0;
+		if ((fmt.fs & FMT_FS_DO_NOT_NULL_TERM) == 0) *f = 0;
+	}
+	else
+	{
+		if (fmt.minus && IS_VAL_NEG(ival))
+		{
+			ival = -ival;
+			len = 1;
+		}
+		else len = fmt.plus ? 1 : 0;
+
+		do
+		{
+			ival /= fmt.base;
+			len++;
+		} while (ival);
+
+		if (len < fmt.width) len = fmt.width;
 	}
 
 	return len;
@@ -169,22 +170,22 @@ char *mttstr_ival_to_alloc_fstr(size_t ival, struct mttstr_fmt_t fmt)
 {
 	size_t fstrsize = mttstr_ival_to_fstr(NULL, ival, fmt);
 
-	if (fmt.fs & FMT_FS_NULL_TERM) fstrsize++;
+	if (fstrsize == 0) return NULL;
 
-	char *fstr = malloc(fstrsize * sizeof(char));
+	if ((fmt.fs & FMT_FS_DO_NOT_NULL_TERM) == 0) fstrsize++;
 
-	if (fstr == NULL) return NULL;
+	char *fstr = malloc(fstrsize * sizeof(*fstr));
 
-	mttstr_ival_to_fstr(fstr, ival, fmt);
+	if (fstr) mttstr_ival_to_fstr(fstr, ival, fmt);
 
 	return fstr;
 }
 
-size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fmt_t fmt)
+size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 {
 	if (fstr == NULL || fmt.base < 2 || fmt.base > 36)
 	{
-		if (last != NULL) *last = NULL;
+		if (last) *last = NULL;
 
 		return 0;
 	}
@@ -210,16 +211,10 @@ size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fm
 
 			s = 1;
 		}
-
-		while (fc == fmt.fill)
-		{
-			fstr++;
-			fc = *fstr;
-		}
 	}
 	else
 	{
-		if ((fmt.fs & FMT_FS_RIGHT_FILL) == 0x00)
+		if ((fmt.fs & FMT_FS_RIGHT_FILL) == 0)
 		{
 			while (fc == fmt.fill)
 			{
@@ -250,7 +245,25 @@ size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fm
 
 	if (fmt.base > 10)
 	{
-		if (fmt.fs & FMT_FS_MCASE)
+		if (fmt.fs & FMT_FS_UCASE)
+		{
+			char min = (fmt.fs & FMT_FS_LCASE) == FMT_FS_LCASE ? 'a' : 'A', max = min + fmt.base - 10;
+
+			while (1)
+			{
+				if (fc < '0' || fc > '9')
+				{
+					if (fc < min || max <= fc) break;
+
+					ival = ival * fmt.base + fc - min + 10;
+				}
+				else ival = ival * fmt.base + fc - '0';
+
+				fstr++;
+				fc = *fstr;				
+			}
+		}
+		else
 		{
 			char umax = 'A' + fmt.base - 10, lmax = umax + 32;
 
@@ -265,24 +278,6 @@ size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fm
 						ival = ival * fmt.base + fc - 87;
 					}
 					else ival = ival * fmt.base + fc - 55;
-				}
-				else ival = ival * fmt.base + fc - '0';
-
-				fstr++;
-				fc = *fstr;
-			}
-		}
-		else
-		{
-			char min = fmt.fs & FMT_FS_LCASE ? 'a' : 'A', max = min + fmt.base - 10;
-
-			while (1)
-			{
-				if (fc < '0' || fc > '9')
-				{
-					if (fc < min || max <= fc) break;
-
-					ival = ival * fmt.base + fc - min + 10;
 				}
 				else ival = ival * fmt.base + fc - '0';
 
@@ -305,7 +300,7 @@ size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fm
 		}
 	}
 
-	if (last != NULL) *last = fstr;
+	if (last) *last = fstr;
 
 	return s * ival;
 }
