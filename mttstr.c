@@ -42,7 +42,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 
 		if (fmt.base > 10)
 		{
-			char a = fmt.fs & FMT_FS_LCASE ? 87 : 55;
+			char a = fmt.ltrcase & LOWER ? 87 : 55;
 
 			do
 			{
@@ -65,7 +65,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 
 		char *fw;
 
-		if (fmt.fs & FMT_FS_INT_FILL)
+		if (fmt.fillmode == INTERNAL)
 		{
 			fw = fstr + fmt.width - 1;
 
@@ -94,7 +94,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 			len = f - fstr;
 			mttstr_mem_rev(fstr, len);
 		}
-		else if (fmt.fs & FMT_FS_RIGHT_FILL)
+		else if (fmt.fillmode == RIGHT)
 		{
 			if IS_VAL_NEG(i)
 			{
@@ -114,7 +114,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 			{
 				*f = fmt.fill;
 				f++;
-			}			
+			}
 
 			len = f - fstr;
 		}
@@ -143,7 +143,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 			mttstr_mem_rev(fstr, len);
 		}
 
-		if ((fmt.fs & FMT_FS_DO_NOT_NULL_TERM) == 0) *f = 0;
+		if (fmt.nonullterm == 0) *f = 0;
 	}
 	else
 	{
@@ -166,22 +166,7 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 	return len;
 }
 
-char *mttstr_ival_to_alloc_fstr(size_t ival, struct mttstr_fmt_t fmt)
-{
-	size_t fstrsize = mttstr_ival_to_fstr(NULL, ival, fmt);
-
-	if (fstrsize == 0) return NULL;
-
-	if ((fmt.fs & FMT_FS_DO_NOT_NULL_TERM) == 0) fstrsize++;
-
-	char *fstr = malloc(fstrsize * sizeof(*fstr));
-
-	if (fstr) mttstr_ival_to_fstr(fstr, ival, fmt);
-
-	return fstr;
-}
-
-size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
+size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fmt_t fmt)
 {
 	if (fstr == NULL || fmt.base < 2 || fmt.base > 36)
 	{
@@ -193,7 +178,7 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 	char fc = *fstr;
 	size_t s;
 
-	if (fmt.fs & FMT_FS_INT_FILL)
+	if (fmt.fillmode == INTERNAL)
 	{
 		if (fc == fmt.minus)
 		{
@@ -211,10 +196,16 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 
 			s = 1;
 		}
+
+		while (fc == fmt.fill)
+		{
+			fstr++;
+			fc = *fstr;
+		}
 	}
 	else
 	{
-		if ((fmt.fs & FMT_FS_RIGHT_FILL) == 0)
+		if (fmt.fillmode == LEFT)
 		{
 			while (fc == fmt.fill)
 			{
@@ -245,9 +236,11 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 
 	if (fmt.base > 10)
 	{
-		if (fmt.fs & FMT_FS_UCASE)
+		char diff;
+
+		if (fmt.ltrcase)
 		{
-			char min = (fmt.fs & FMT_FS_LCASE) == FMT_FS_LCASE ? 'a' : 'A', max = min + fmt.base - 10;
+			char min = fmt.ltrcase & LOWER ? 'a' : 'A', max = min + fmt.base - 10, diffmin = min + 10;
 
 			while (1)
 			{
@@ -255,17 +248,18 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 				{
 					if (fc < min || max <= fc) break;
 
-					ival = ival * fmt.base + fc - min + 10;
+					diff = diffmin;
 				}
-				else ival = ival * fmt.base + fc - '0';
+				else diff = '0';
 
 				fstr++;
-				fc = *fstr;				
+				ival = ival * fmt.base + fc - diff;
+				fc = *fstr;
 			}
 		}
 		else
 		{
-			char umax = 'A' + fmt.base - 10, lmax = umax + 32;
+			char umax = 55 + fmt.base, lmax = umax + 32;
 
 			while (1)
 			{
@@ -275,13 +269,14 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 					{
 						if (fc < 'a' || lmax <= fc) break;
 
-						ival = ival * fmt.base + fc - 87;
+						diff = 87;
 					}
-					else ival = ival * fmt.base + fc - 55;
+					else diff = 55;
 				}
-				else ival = ival * fmt.base + fc - '0';
+				else diff = '0';
 
 				fstr++;
+				ival = ival * fmt.base + fc - diff;
 				fc = *fstr;
 			}
 		}

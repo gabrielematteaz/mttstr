@@ -1,34 +1,39 @@
 #ifndef MTTSTR_H
 #define MTTSTR_H
 
-#include <stdlib.h>
-
-#define FMT_FS_MCASE 0x00
-#define FMT_FS_UCASE 0x01
-#define FMT_FS_LCASE 0x03
-
-#define FMT_FS_LEFT_FILL 0x00
-#define FMT_FS_INT_FILL 0x04
-#define FMT_FS_RIGHT_FILL 0x08
-
-#define FMT_FS_NULL_TERM 0x00
-#define FMT_FS_DO_NOT_NULL_TERM 0x10
+#include <stddef.h>
+#include <limits.h>
 
 #define IS_VAL_NEG(val) (val & (size_t)1 << (sizeof(val) * CHAR_BIT - 1))
+
+enum mttstr_fmt_ltrcase_t
+{
+	MIXED,
+	UPPER,
+	LOWER
+};
+
+enum mttstr_fmt_fillmode_t
+{
+	LEFT,
+	INTERNAL,
+	RIGHT
+};
 
 struct mttstr_fmt_t
 {
 	char plus, minus, fill;
 	int base;
-	int fs;
+	enum mttstr_fmt_ltrcase_t ltrcase;
+	enum mttstr_fmt_fillmode_t fillmode;
+	int nonullterm;
 	size_t width;
 };
 
 void *mttstr_mem_rev(void *mem, size_t n);
 
 size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt);
-char *mttstr_ival_to_alloc_fstr(size_t ival, struct mttstr_fmt_t fmt);
 
-size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt);
+size_t mttstr_fstr_to_ival(const char *fstr, const char **last, struct mttstr_fmt_t fmt);
 
 #endif
